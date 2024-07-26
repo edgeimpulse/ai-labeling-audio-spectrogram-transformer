@@ -6,3 +6,4 @@ ffmpeg==1.4.0
 pydub==0.25.1
 
 edgeimpulse-api==1.53.13
+argparse
