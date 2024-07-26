@@ -1,0 +1,52 @@
+[
+    {
+        "name": "Hugging Face API Key",
+        "value": "",
+        "type": "secret",
+        "help": "An API Key that gives access to Hugging Face",
+        "param": "HF_API_KEY"
+    },
+    {
+        "name": "Labels of interest",
+        "value": "Snoring,Vehicle",
+        "type": "string",
+        "help": "Comma separated list of labels from \"AudioSet\" that will be be used to label the sample. When model returns any other label, the label for this sample in Edge Impulse will be set to \"noise\"",
+        "param": "audioset_labels",
+        "multiline": true
+    },
+    {
+        "name": "Window size (ms)",
+        "value": "5000",
+        "type": "int",
+        "help": "Size of the window for each classification",
+        "param": "win_size_ms"
+    },
+    {
+        "name": "Window stride (ms)",
+        "value": "2000",
+        "type": "int",
+        "help": "Sliding window step (stride)",
+        "param": "stride_ms"
+    },
+    {
+        "name": "Multi-Label",
+        "value": "False",
+        "type": "boolean",
+        "help": "Apply multilabel to original long sample if true (Only PRO and ENTERPRISE); Reupload classified splits if false",
+        "param": "multilabel_enabled"
+    },
+    {
+        "name": "Enable \"maybe\" label",
+        "value": "False",
+        "type": "boolean",
+        "help": "Intorduce a \"maybe\" label for samples that are not classified with high confidence for the labels of interest. This will mark up the regions in the large sample where to review manually.",
+        "param": "maybe_enabled"
+    },
+    {
+        "name": "\"Maybe\" threshold",
+        "value": "0.3",
+        "type": "float",
+        "help": "Threshold after which the classification becomes \"maybe\"",
+        "param": "maybe_threshold"
+    }
+]

@@ -1,0 +1,5 @@
+*.wav
+.ei-block-config
+out*
+scratchpad.py
+*test*
