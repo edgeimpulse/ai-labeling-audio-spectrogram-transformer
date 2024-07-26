@@ -8,9 +8,9 @@
     },
     {
         "name": "Labels of interest",
-        "value": "Snoring,Vehicle",
+        "value": "None",
         "type": "string",
-        "help": "Comma separated list of labels from \"AudioSet\" that will be be used to label the sample. When model returns any other label, the label for this sample in Edge Impulse will be set to \"noise\"",
+        "help": "Comma separated list of labels from \"AudioSet\" dataset that will be used to label the sample. When model returns any other label, the label in Edge Impulse will be set to \"noise\". To get all the labels from \"AudioSet\", use None or none",
         "param": "audioset-labels",
         "multiline": true
     },

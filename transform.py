@@ -204,7 +204,8 @@ def create_splits_and_classify_from_wav(
         print(classification)
         label = classification[0]["label"]
 
-        if audioset_labels_list:
+        # override label if it is not in the list
+        if "None" not in audioset_labels_list and "none" not in audioset_labels_list:
             if label not in audioset_labels_list:
                 label = "noise"
 
