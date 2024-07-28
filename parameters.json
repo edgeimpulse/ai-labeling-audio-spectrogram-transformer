@@ -15,10 +15,18 @@
         "multiline": true
     },
     {
+        "name": "How to call labels of interest",
+        "value": "None",
+        "type": "string",
+        "help": "A label that should be assigned to samples that classify with the labels mentioned above",
+        "param": "my-label",
+        "multiline": true
+    },
+    {
         "name": "Window size (ms)",
-        "value": "5000",
+        "value": "0",
         "type": "int",
-        "help": "Size of the window for each classification",
+        "help": "Size of the window for each classification. If set to 0, samples will be labeled with one label per sample, as opposed to structured labels.",
         "param": "win-size-ms"
     },
     {

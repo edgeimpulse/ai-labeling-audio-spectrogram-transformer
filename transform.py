@@ -8,6 +8,9 @@ from edgeimpulse_api import ApiClient, Configuration, ProjectsApi, RawDataApi
 from edgeimpulse_api.models.set_sample_structured_labels_request import (
     SetSampleStructuredLabelsRequest,
 )
+from edgeimpulse_api.models.edit_sample_label_request import (
+    EditSampleLabelRequest,
+)
 
 ### This is a standalone block
 
@@ -80,6 +83,12 @@ parser.add_argument(
     help='Comma separated list of labels from "AudioSet" that will be be used to label the sample. When model returns any other label, the label for this sample in Edge Impulse will be set to "noise". If no labels set here all the results will be added do the model',
 )
 parser.add_argument(
+    "--my-label",
+    type=str,
+    required=False,
+    help="A label that should be assigned to samples that classify with the labels mentioned above",
+)
+parser.add_argument(
     "--win-size-ms",
     type=int,
     required=True,
@@ -102,6 +111,9 @@ args, unknown = parser.parse_known_args()
 
 audioset_labels_list = args.audioset_labels.split(",")
 print(f"Labels to get out of the model: {audioset_labels_list}")
+
+my_label = args.my_label
+print(f"Label to assigned if not noise: {my_label}")
 
 win_size_ms = args.win_size_ms
 print(f"Window size: {win_size_ms}")
@@ -157,6 +169,7 @@ def create_splits_and_classify_from_wav(
     stride_ms: int,
     hf_api_key: str,
     audioset_labels_list: list = None,
+    my_label: str = None,
 ):
     """
     Split the input audio file into windows of size "win_size_ms" with stride "stride_ms"
@@ -190,6 +203,10 @@ def create_splits_and_classify_from_wav(
     )  # list of tuples (label, start_ms, end_ms) - for constructing structured_labels.labels
     out_files_list = []  # list of output file paths - for uploading to EI
 
+    # if 0 is specified we give one label per sample and send the whole sample to classify for a model
+    # THis means the loop will execute only once and one interval will be added to the list
+    if win_size_ms == 0:
+        win_size_ms = audio_len
     # Get sliding window of size "win_size_ms" with stride "stride_ms" from audio wav
     for i in range(0, len(audio) - win_size_ms + 1, stride_ms):
         # Get the split audio
@@ -206,8 +223,15 @@ def create_splits_and_classify_from_wav(
 
         # override label if it is not in the list
         if "None" not in audioset_labels_list and "none" not in audioset_labels_list:
+            # # Add second chance for the label
+            # if label not in audioset_labels_list and label in audioset_labels_list:
+            #     label = classification[1]["label"]
             if label not in audioset_labels_list:
                 label = "noise"
+
+        # Assign the desired label to classifications from the list
+        if label != "noise" and my_label != "none" and my_label != "None":
+            label = my_label
 
         # Rename, appending label as first token
         fname_split_labeled = f"{label}.{fname}_{i}_{i + win_size_ms}.wav"
@@ -222,6 +246,16 @@ def create_splits_and_classify_from_wav(
         intervals_list.append(multilabel_entry)
 
     return intervals_list, out_files_list
+
+
+def set_sample_label_in_studio(
+    api: RawDataApi, project_id: int, sample_id: int, label: str
+):
+    label_dict = {"label": label}
+    set_sample_label_request = EditSampleLabelRequest.from_dict(label_dict)
+    rc = api.edit_label(project_id, sample_id, set_sample_label_request)
+
+    return rc
 
 
 def append_multilabel_to_sample_in_studio(
@@ -365,12 +399,18 @@ for sample in samples:
         win_stride_ms,
         HF_API_KEY,
         audioset_labels_list,
+        my_label
     )
 
-    # Create structuredLabels.labels and append to sample
-    structured_labels = create_structured_labels_from_intervals_list(
-        intervals_list, total_length_ms, values_count
-    )
-    append_multilabel_to_sample_in_studio(
-        raw_data_api, project_id, sample_id, structured_labels
-    )
+    # If the sample is short enough, just set the label
+    if len(intervals_list) == 1:
+        label = intervals_list[0][0]
+        set_sample_label_in_studio(raw_data_api, project_id, sample_id, label)
+    else:
+        # Create structuredLabels.labels and append to sample
+        structured_labels = create_structured_labels_from_intervals_list(
+            intervals_list, total_length_ms, values_count
+        )
+        append_multilabel_to_sample_in_studio(
+            raw_data_api, project_id, sample_id, structured_labels
+        )
