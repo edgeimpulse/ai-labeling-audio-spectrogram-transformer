@@ -109,7 +109,7 @@ parser.add_argument(
 
 args, unknown = parser.parse_known_args()
 
-audioset_labels_list = args.audioset_labels.split(",")
+audioset_labels_list = args.audioset_labels.split(";")
 print(f"Labels to get out of the model: {audioset_labels_list}")
 
 my_label = args.my_label
