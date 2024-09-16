@@ -8,3 +8,6 @@ scratchpad.py
 **yt**
 sounds
 *.sh
+load-keys.sh
+data-ids.json
+.venv/

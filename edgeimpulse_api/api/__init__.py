@@ -1,0 +1,30 @@
+from __future__ import absolute_import
+
+# flake8: noqa
+
+# import apis into api package
+from edgeimpulse_api.api.classify_api import ClassifyApi
+from edgeimpulse_api.api.dsp_api import DSPApi
+from edgeimpulse_api.api.deployment_api import DeploymentApi
+from edgeimpulse_api.api.devices_api import DevicesApi
+from edgeimpulse_api.api.email_verification_api import EmailVerificationApi
+from edgeimpulse_api.api.export_api import ExportApi
+from edgeimpulse_api.api.impulse_api import ImpulseApi
+from edgeimpulse_api.api.jobs_api import JobsApi
+from edgeimpulse_api.api.learn_api import LearnApi
+from edgeimpulse_api.api.login_api import LoginApi
+from edgeimpulse_api.api.optimization_api import OptimizationApi
+from edgeimpulse_api.api.organization_blocks_api import OrganizationBlocksApi
+from edgeimpulse_api.api.organization_create_project_api import OrganizationCreateProjectApi
+from edgeimpulse_api.api.organization_data_api import OrganizationDataApi
+from edgeimpulse_api.api.organization_data_campaigns_api import OrganizationDataCampaignsApi
+from edgeimpulse_api.api.organization_jobs_api import OrganizationJobsApi
+from edgeimpulse_api.api.organization_pipelines_api import OrganizationPipelinesApi
+from edgeimpulse_api.api.organization_portals_api import OrganizationPortalsApi
+from edgeimpulse_api.api.organizations_api import OrganizationsApi
+from edgeimpulse_api.api.performance_calibration_api import PerformanceCalibrationApi
+from edgeimpulse_api.api.projects_api import ProjectsApi
+from edgeimpulse_api.api.raw_data_api import RawDataApi
+from edgeimpulse_api.api.upload_portal_api import UploadPortalApi
+from edgeimpulse_api.api.user_api import UserApi
+from edgeimpulse_api.api.whitelabels_api import WhitelabelsApi

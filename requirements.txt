@@ -4,6 +4,6 @@ pyarrow==12.0.1
 requests==2.28.2
 ffmpeg==1.4.0
 pydub==0.25.1
-
-edgeimpulse-api==1.53.13
-argparse
+pydantic==1.10.2
+aenum
+python-dateutil

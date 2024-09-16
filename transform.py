@@ -2,6 +2,7 @@ import os, sys
 import requests
 import time
 import argparse
+import json
 
 # Import the API objects we plan to use
 from edgeimpulse_api import ApiClient, Configuration, ProjectsApi, RawDataApi
@@ -43,19 +44,14 @@ if not os.getenv("EI_PROJECT_API_KEY"):
     sys.exit(1)
 
 HF_API_KEY = os.environ.get("HF_API_KEY")
+
 EI_PROJECT_API_KEY = os.environ.get("EI_PROJECT_API_KEY")
-
-EI_INGESTION_HOST = os.environ.get("EI_INGESTION_HOST", "edgeimpulse.com")
-
-# HF_API_KEY = ""
-# EI_PROJECT_API_KEY = ""
+EI_API_ENDPOINT = os.environ.get("EI_API_ENDPOINT", "https://studio.edgeimpulse.com/v1")
 
 # Inferencing of audio classifier
 HF_INFERENCE_URL = "https://api-inference.huggingface.co/models/MIT/ast-finetuned-audioset-10-10-0.4593"
 
 # Settings
-EI_API_HOST = "https://studio.edgeimpulse.com/v1"
-DATASET_PATH = "dataset/gestures"
 OUTPUT_PATH = "./out"
 
 # Argument parser for command line arguments
@@ -70,23 +66,10 @@ parser = argparse.ArgumentParser(
 #     help="Argument passed by Edge Impulse transformation block when the --in-file option is selected",
 # )
 parser.add_argument(
-    "--out-directory",
-    type=str,
-    required=False,
-    help="Directory to save images to",
-    default="output",
-)
-parser.add_argument(
     "--audioset-labels",
     type=str,
-    required=False,
-    help='Comma separated list of labels from "AudioSet" that will be be used to label the sample. When model returns any other label, the label for this sample in Edge Impulse will be set to "noise". If no labels set here all the results will be added do the model',
-)
-parser.add_argument(
-    "--my-label",
-    type=str,
-    required=False,
-    help="A label that should be assigned to samples that classify with the labels mentioned above",
+    required=True,
+    help='Comma separated list of labels from "AudioSet" that will be be used to label the sample. When model returns any other label, the label for this sample in Edge Impulse will be set to "other".',
 )
 parser.add_argument(
     "--win-size-ms",
@@ -98,32 +81,42 @@ parser.add_argument(
     "--win-stride-ms",
     type=int,
     required=True,
-    help="Size of the window for each classification",
+    help="Stride of the window for each classification",
 )
-parser.add_argument(
-    "--maybe-enabled",
-    type=bool,
-    required=False,
-    help='If two or more highest classes are not distinctively different, the model will return "maybe" as a label',
-)
+parser.add_argument("--other-label", type=str, default='other',
+    help='Other label')
+parser.add_argument("--min-confidence", type=float, default=0.5,
+    help='Classifications below the threshold are discarded')
+parser.add_argument("--data-ids-file", type=str, required=True,
+    help='File with IDs (as JSON)')
+parser.add_argument("--propose-actions", type=int, required=False,
+    help='If this flag is passed in, only propose suggested actions')
 
 args, unknown = parser.parse_known_args()
 
-audioset_labels_list = args.audioset_labels.split(";")
-print(f"Labels to get out of the model: {audioset_labels_list}")
-
-my_label = args.my_label
-print(f"Label to assigned if not noise: {my_label}")
-
+audioset_labels_list = [ x.strip().lower() for x in args.audioset_labels.split(",") ]
 win_size_ms = args.win_size_ms
-print(f"Window size: {win_size_ms}")
-
 win_stride_ms = args.win_stride_ms
-print(f"Window stride: {win_stride_ms}")
+if args.data_ids_file:
+    with open(args.data_ids_file, 'r') as f:
+        data_ids = json.load(f)
+other_label = args.other_label
+min_confidence = args.min_confidence
 
-is_maybe_enabled = args.maybe_enabled
-print(f"Maybe enabled: {is_maybe_enabled}")
+print('Labeling data using Audio Spectrogram Transformers')
+print('')
+print('Detecting audio:')
+print('    Audioset labels:', audioset_labels_list)
+print('    Other label:', other_label)
+print('    Min. confidence:', min_confidence)
+print(f"    Window size: {win_size_ms}ms.")
+print(f"    Window stride: {win_stride_ms}ms.")
+if (len(data_ids) < 6):
+    print('    IDs:', ', '.join([ str(x) for x in data_ids ]))
+else:
+    print('    IDs:', ', '.join([ str(x) for x in data_ids[0:5] ]), 'and ' + str(len(data_ids) - 5) + ' others')
 
+print('')
 
 def classify_audio_sample(filename: str, hf_api_key: str):
     headers = {"Authorization": f"Bearer {hf_api_key}"}
@@ -131,36 +124,19 @@ def classify_audio_sample(filename: str, hf_api_key: str):
     with open(filename, "rb") as f:
         data = f.read()
     response = requests.post(HF_INFERENCE_URL, headers=headers, data=data)
-    return response.json()
+    body = response.json()
+
+    if (type(body) is dict and 'estimated_time' in body.keys()):
+        print('Request failed, model is spinning up:' + body['error'])
+        time.sleep(body['estimated_time'] + 5)
+        response = requests.post(HF_INFERENCE_URL, headers=headers, data=data)
+        body = response.json()
+
+    return body
 
 
 def ms_to_index(ms: float, total_values: int, total_ms: float):
     return int((ms / total_ms) * total_values)
-
-
-def create_structured_labels_from_intervals_list(
-    intervals: list, total_ms: float, total_values: int
-):
-    # Move from Ms to Index (this is so stupid) and construct a json
-    start_str = '{"structuredLabels":['
-    end_str = "]}"
-
-    for i, interval in enumerate(intervals):
-        label = interval[0]
-        if i == 0:
-            start = 0
-        else:
-            # add a small value to avoid overlap and cover high frequencies
-            start = ms_to_index(intervals[i - 1][2], total_values, total_ms) + 1
-        end = ms_to_index(interval[2], total_values, total_ms)
-        if i == len(intervals) - 1:
-            end = total_values - 1
-        if i != 0:
-            start_str += ","
-
-        start_str += f'{{"label":"{label}","startIndex":{start},"endIndex":{end}}}'
-    return start_str + end_str
-
 
 def create_splits_and_classify_from_wav(
     input_file_path: str,
@@ -168,8 +144,7 @@ def create_splits_and_classify_from_wav(
     win_size_ms: int,
     stride_ms: int,
     hf_api_key: str,
-    audioset_labels_list: list = None,
-    my_label: str = None,
+    audioset_labels_list: list,
 ):
     """
     Split the input audio file into windows of size "win_size_ms" with stride "stride_ms"
@@ -180,7 +155,7 @@ def create_splits_and_classify_from_wav(
     # Load the input audio file
     audio = AudioSegment.from_wav(input_file_path)
     audio_len = len(audio)
-    print(f"Audio length: {audio_len}")
+    print(f", length={audio_len}ms:")
     # If win_size_ms is 0, we process the given sample as a whole
     if win_size_ms == 0:
         win_size_ms = audio_len
@@ -189,7 +164,6 @@ def create_splits_and_classify_from_wav(
     # File name all until file extension, preserve other dots in file name
     fname = input_file_path.split("/")[-1].split(".")[:-1]
     fname = ".".join(fname)
-    print(fname)
 
     output_subdirectory = f"{output_directory}/{fname}"
 
@@ -200,52 +174,64 @@ def create_splits_and_classify_from_wav(
 
     intervals_list = (
         []
-    )  # list of tuples (label, start_ms, end_ms) - for constructing structured_labels.labels
-    out_files_list = []  # list of output file paths - for uploading to EI
+    )
 
     # if 0 is specified we give one label per sample and send the whole sample to classify for a model
     # THis means the loop will execute only once and one interval will be added to the list
     if win_size_ms == 0:
         win_size_ms = audio_len
-    # Get sliding window of size "win_size_ms" with stride "stride_ms" from audio wav
+
+    windows = []
     for i in range(0, len(audio) - win_size_ms + 1, stride_ms):
+        start = i
+        end = i + win_size_ms
+        if end > audio_len:
+            end = audio_len
+        windows.append([ start, end ])
+
+    windows.append([ audio_len - win_size_ms, audio_len ])
+
+    # Get sliding window of size "win_size_ms" with stride "stride_ms" from audio wav
+    for [ start, end ] in windows:
+        print('    [' + str(start) + ' - ' + str(end) + 'ms.] ', end='')
+
         # Get the split audio
-        split_audio = audio[i : i + win_size_ms]
+        split_audio = audio[start:end]
         # create a filename for split to identify by section
-        fname_split = f"{fname}_{i}_{i + win_size_ms}.wav"
+        fname_split = f"{fname}_{start}_{end}.wav"
         output_file = os.path.join(output_subdirectory, fname_split)
 
         split_audio.export(output_file, format="wav")
         # do inference
         classification = classify_audio_sample(output_file, hf_api_key)
-        print(classification)
-        label = classification[0]["label"]
 
-        # override label if it is not in the list
-        if "None" not in audioset_labels_list and "none" not in audioset_labels_list:
-            # # Add second chance for the label
-            # if label not in audioset_labels_list and label in audioset_labels_list:
-            #     label = classification[1]["label"]
+        if (not isinstance(classification, (list))):
+            print('classify_audio_sample did not return a list:', classification)
+            exit(1)
+
+        if (len(classification) == 0):
+            print('classify_audio_sample did not return any classifications:', classification)
+            exit(1)
+
+        if (not 'score' in classification[0].keys()):
+            print('classify_audio_sample did not return a classification with "score" in it:', classification)
+            exit(1)
+
+        if classification[0]['score'] >= min_confidence:
+            label = classification[0]["label"].lower()
+
             if label not in audioset_labels_list:
-                label = "noise"
+                label = other_label
+        else:
+            label = other_label
 
-        # Assign the desired label to classifications from the list
-        if label != "noise" and my_label != "none" and my_label != "None":
-            label = my_label
-
-        # Rename, appending label as first token
-        fname_split_labeled = f"{label}.{fname}_{i}_{i + win_size_ms}.wav"
-        output_file_labeled = os.path.join(output_subdirectory, fname_split_labeled)
-        os.rename(output_file, output_file_labeled)
-
-        # Add new file to list of labeled splits
-        out_files_list.append(output_file_labeled)
+        print(label)
 
         # Add label and interval tuple to split list
-        multilabel_entry = (label, i, i + win_size_ms)
+        multilabel_entry = (label, start, end)
         intervals_list.append(multilabel_entry)
 
-    return intervals_list, out_files_list
+    return intervals_list
 
 
 def set_sample_label_in_studio(
@@ -261,7 +247,6 @@ def set_sample_label_in_studio(
 def append_multilabel_to_sample_in_studio(
     api: RawDataApi, project_id: int, sample_id: int, structured_labels: str
 ):
-    print(structured_labels)
     set_sample_structured_labels_request = SetSampleStructuredLabelsRequest.from_json(
         structured_labels
     )
@@ -271,50 +256,6 @@ def append_multilabel_to_sample_in_studio(
     )
 
     return rc
-
-
-def upload_files_to_ei_project(project_api_key, path, subset):
-    """
-    Upload files in the given path/subset (where subset is "training" or
-    "testing")
-    This is used only if splitting is performed for long samples in projects
-    where the multilabel is disabled
-    """
-
-    # Construct request
-    url = f"https://ingestion.edgeimpulse.com/api/{subset}/files"
-    headers = {
-        "x-api-key": project_api_key,
-        "x-disallow-duplicates": "true",
-    }
-
-    # Get file handles and create dataset to upload
-    # File names shoudl start wil {label}.filename.wav
-    files = []
-    file_list = os.listdir(os.path.join(path, subset))
-    for file_name in file_list:
-        file_path = os.path.join(path, subset, file_name)
-        if os.path.isfile(file_path):
-            file_handle = open(file_path, "rb")
-            files.append(("data", (file_name, file_handle, "multipart/form-data")))
-
-    # Upload the files
-    response = requests.post(
-        url=url,
-        headers=headers,
-        files=files,
-    )
-
-    # Print any errors for files that did not upload
-    upload_responses = response.json()["files"]
-    for resp in upload_responses:
-        if not resp["success"]:
-            print(resp)
-
-    # Close all the handles
-    for handle in files:
-        handle[1][1].close()
-
 
 def get_sample_wav_from_project_by_id(project_id, sample_id, path):
     # returns string
@@ -334,7 +275,7 @@ def get_sample_wav_from_project_by_id(project_id, sample_id, path):
 
 # Create top-level API client
 config = Configuration(
-    host=EI_API_HOST, api_key={"ApiKeyAuthentication": EI_PROJECT_API_KEY}
+    host=EI_API_ENDPOINT, api_key={"ApiKeyAuthentication": EI_PROJECT_API_KEY}
 )
 client = ApiClient(config)
 
@@ -357,60 +298,77 @@ print(f"Project ID: {project_id}")
 
 # Get relevant project info
 project_info = projects_api.get_project_info(project_id=project_id).to_dict()
-# "single_label" or "multi_label"
-project_labeling_method = project_info["project"]["labelingMethod"]
-# "Image classification" or "Keyword Spotting" or "Other"
-project_category = project_info["project"]["category"]
 
-print(project_category)
-print(project_labeling_method)
+def current_ms():
+    return round(time.time() * 1000)
 
-# Get samples from train and test data of the project in one list
-response = raw_data_api.list_samples(project_id=project_id, category="training")
-samples = response.to_dict()["samples"]
-response = raw_data_api.list_samples(project_id=project_id, category="testing")
-samples.append(response.to_dict()["samples"])
+ix = 0
+for data_id in data_ids:
+    ix = ix + 1
+    now = current_ms()
 
-for sample in samples:
-    if "id" not in sample:
-        continue
-    sample_id = sample["id"]
-    sample_filename = sample["filename"]
+    sample = (raw_data_api.get_sample(project_id=project_id, sample_id=data_id)).sample
+
+    prefix = '[' + str(ix).rjust(len(str(len(data_ids))), ' ') + '/' + str(len(data_ids)) + ']'
+
+    print(prefix, 'Labeling ' + sample.filename + ' (ID ' + str(sample.id) + ')', end='')
 
     # # Skip sample if it already has structured labels
     # if not "structuredLabels" in sample:
     #     print(f"Skipping sample {sample_id} as it already has structured labels")
     #     continue
 
-    total_length_ms = sample["totalLengthMs"]  # length in Ms
-    values_count = sample["valuesCount"]  # length in indices
+    total_length_ms = sample.total_length_ms  # length in Ms
+    values_count = sample.values_count  # length in indices
 
     # Get the audio file from the project (from the API)
-    sample_file_path = f"./{sample_filename}.wav"
+    sample_file_path = f"./{sample.filename}.wav"
     sample_data = get_sample_wav_from_project_by_id(
-        project_id, sample_id, sample_file_path
+        project_id, sample.id, sample_file_path
     )
 
     # Create splits and classify
-    intervals_list, files_list = create_splits_and_classify_from_wav(
+    intervals_list = create_splits_and_classify_from_wav(
         sample_file_path,
         OUTPUT_PATH,
         win_size_ms,
         win_stride_ms,
         HF_API_KEY,
         audioset_labels_list,
-        my_label
     )
 
-    # If the sample is short enough, just set the label
-    if len(intervals_list) == 1:
-        label = intervals_list[0][0]
-        set_sample_label_in_studio(raw_data_api, project_id, sample_id, label)
+    structured_labels = []
+    for interval in intervals_list:
+        label, start_ts, end_ts = interval
+        start_ix = int(start_ts * (sample.frequency / 1000))
+        end_ix = int((end_ts * (sample.frequency / 1000)) - 1)
+        structured_labels.append({
+            'startIndex': start_ix,
+            'endIndex': end_ix,
+            'label': label
+        })
+
+    new_metadata = sample.metadata if sample.metadata else { }
+    new_metadata['labeled_by'] = 'audio-spectrogram-transformer'
+    new_metadata['labels'] = ', '.join(audioset_labels_list)
+
+    if args.propose_actions:
+        raw_data_api.set_sample_proposed_changes(project_id=project_id, sample_id=sample.id, set_sample_proposed_changes_request={
+            'jobId': args.propose_actions,
+            'proposedChanges': {
+                'structuredLabels': structured_labels,
+                'metadata': new_metadata
+            }
+        })
     else:
-        # Create structuredLabels.labels and append to sample
-        structured_labels = create_structured_labels_from_intervals_list(
-            intervals_list, total_length_ms, values_count
+        # print(set_sample_structured_labels_request)
+        raw_data_api.set_sample_structured_labels(
+            project_id, sample.id, set_sample_structured_labels_request={
+                'structuredLabels': structured_labels
+            }
         )
-        append_multilabel_to_sample_in_studio(
-            raw_data_api, project_id, sample_id, structured_labels
-        )
+        raw_data_api.set_sample_metadata(project_id=project_id, sample_id=sample.id, set_sample_metadata_request={
+            'metadata': new_metadata
+        })
+
+print('All done!')

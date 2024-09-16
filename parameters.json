@@ -8,23 +8,22 @@
     },
     {
         "name": "Labels of interest",
-        "value": "None",
+        "value": "speech, music",
         "type": "string",
-        "help": " List of labels from \"AudioSet\" dataset (separated by \";\")that will be used to label the sample. When model returns any other label, the label in Edge Impulse will be set to \"noise\". To get all the labels from \"AudioSet\", use None or none",
+        "help": " List of labels from \"AudioSet\" dataset (separated by \",\") that should be labeled.",
         "param": "audioset-labels",
         "multiline": true
     },
     {
-        "name": "How to call labels of interest",
-        "value": "None",
+        "name": "Other label",
+        "value": "other",
         "type": "string",
-        "help": "A label that should be assigned to samples that classify with the labels mentioned above",
-        "param": "my-label",
-        "multiline": true
+        "help": " The label to use for data that was not in 'Labels of interest'.",
+        "param": "other-label"
     },
     {
         "name": "Window size (ms)",
-        "value": "0",
+        "value": "2000",
         "type": "int",
         "help": "Size of the window for each classification. If set to 0, samples will be labeled with one label per sample, as opposed to structured labels.",
         "param": "win-size-ms"
@@ -35,5 +34,12 @@
         "type": "int",
         "help": "Sliding window step (stride)",
         "param": "win-stride-ms"
+    },
+    {
+        "name": "Minimum confidence threshold",
+        "value": "0.5",
+        "type": "float",
+        "help": "Any classifications with a confidence below this threshold are marked 'other'",
+        "param": "min-confidence"
     }
 ]
