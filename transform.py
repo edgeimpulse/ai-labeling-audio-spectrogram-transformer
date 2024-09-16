@@ -338,15 +338,17 @@ for data_id in data_ids:
     )
 
     structured_labels = []
+    last_index = 0
     for interval in intervals_list:
         label, start_ts, end_ts = interval
-        start_ix = int(start_ts * (sample.frequency / 1000))
+        start_ix = last_index
         end_ix = int((end_ts * (sample.frequency / 1000)) - 1)
         structured_labels.append({
             'startIndex': start_ix,
             'endIndex': end_ix,
             'label': label
         })
+        last_index = end_ix + 1
 
     new_metadata = sample.metadata if sample.metadata else { }
     new_metadata['labeled_by'] = 'audio-spectrogram-transformer'
