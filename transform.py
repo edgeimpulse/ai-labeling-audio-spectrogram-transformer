@@ -127,7 +127,7 @@ def classify_audio_sample(filename: str, hf_api_key: str):
     body = response.json()
 
     if (type(body) is dict and 'estimated_time' in body.keys()):
-        print('Request failed, model is spinning up:' + body['error'])
+        print('Request failed, model is spinning up:' + body['error'] + ', sleeping for ' + str(body['estimated_time'] + 5) + ' seconds...')
         time.sleep(body['estimated_time'] + 5)
         response = requests.post(HF_INFERENCE_URL, headers=headers, data=data)
         body = response.json()
