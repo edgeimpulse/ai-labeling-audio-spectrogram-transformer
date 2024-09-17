@@ -1,5 +1,4 @@
 *.DS_Store
-*.wav
 .ei-block-config
 out*
 scratchpad.py
@@ -7,4 +6,3 @@ scratchpad.py
 *dataset
 **yt**
 sounds
-*.sh
