@@ -1,45 +1,53 @@
-[
-    {
-        "name": "Hugging Face API Key",
-        "value": "",
-        "type": "secret",
-        "help": "An API Key that gives access to Hugging Face",
-        "param": "HF_API_KEY"
+{
+    "version": 1,
+    "type": "ai-action",
+    "info": {
+        "name": "Audio labeling with Audio Spectrogram Transformers",
+        "description": "Label any audio data (multiple labels per data item) using a model trained on AudioSet. Make sure you only use AudioSet labels (https://research.google.com/audioset/dataset/index.html)."
     },
-    {
-        "name": "Labels of interest",
-        "value": "speech, music",
-        "type": "string",
-        "help": " List of labels from \"AudioSet\" dataset (separated by \",\") that should be labeled.",
-        "param": "audioset-labels",
-        "multiline": true
-    },
-    {
-        "name": "Other label",
-        "value": "other",
-        "type": "string",
-        "help": " The label to use for data that was not in 'Labels of interest'.",
-        "param": "other-label"
-    },
-    {
-        "name": "Window size (ms)",
-        "value": "2000",
-        "type": "int",
-        "help": "Size of the window for each classification. If set to 0, samples will be labeled with one label per sample, as opposed to structured labels.",
-        "param": "win-size-ms"
-    },
-    {
-        "name": "Window stride (ms)",
-        "value": "2000",
-        "type": "int",
-        "help": "Sliding window step (stride)",
-        "param": "win-stride-ms"
-    },
-    {
-        "name": "Minimum confidence threshold",
-        "value": "0.5",
-        "type": "float",
-        "help": "Any classifications with a confidence below this threshold are marked 'other'",
-        "param": "min-confidence"
-    }
-]
+    "parameters": [
+        {
+            "name": "Hugging Face API Key",
+            "value": "",
+            "type": "secret",
+            "help": "An API Key that gives access to Hugging Face",
+            "param": "HF_API_KEY"
+        },
+        {
+            "name": "Labels of interest",
+            "value": "speech, music",
+            "type": "string",
+            "help": " List of labels from \"AudioSet\" dataset (separated by \",\") that should be labeled.",
+            "param": "audioset-labels",
+            "multiline": true
+        },
+        {
+            "name": "Other label",
+            "value": "other",
+            "type": "string",
+            "help": " The label to use for data that was not in 'Labels of interest'.",
+            "param": "other-label"
+        },
+        {
+            "name": "Window size (ms)",
+            "value": "2000",
+            "type": "int",
+            "help": "Size of the window for each classification. If set to 0, samples will be labeled with one label per sample, as opposed to structured labels.",
+            "param": "win-size-ms"
+        },
+        {
+            "name": "Window stride (ms)",
+            "value": "2000",
+            "type": "int",
+            "help": "Sliding window step (stride)",
+            "param": "win-stride-ms"
+        },
+        {
+            "name": "Minimum confidence threshold",
+            "value": "0.5",
+            "type": "float",
+            "help": "Any classifications with a confidence below this threshold are marked 'other'",
+            "param": "min-confidence"
+        }
+    ]
+}
