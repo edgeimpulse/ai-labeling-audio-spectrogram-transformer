@@ -3,6 +3,7 @@ import requests
 import time
 import argparse
 import json
+import math
 
 # Import the API objects we plan to use
 from edgeimpulse_api import ApiClient, Configuration, ProjectsApi, RawDataApi
@@ -145,6 +146,8 @@ def create_splits_and_classify_from_wav(
     stride_ms: int,
     hf_api_key: str,
     audioset_labels_list: list,
+    audio_freq: float,
+    values_count: int,
 ):
     """
     Split the input audio file into windows of size "win_size_ms" with stride "stride_ms"
@@ -155,11 +158,11 @@ def create_splits_and_classify_from_wav(
     # Load the input audio file
     audio = AudioSegment.from_wav(input_file_path)
     audio_len = len(audio)
+
+    win_size_index = math.ceil(float(win_size_ms) * (audio_freq / 1000))
+    stride_index = math.ceil(float(stride_ms) * (audio_freq / 1000))
+
     print(f", length={audio_len}ms:")
-    # If win_size_ms is 0, we process the given sample as a whole
-    if win_size_ms == 0:
-        win_size_ms = audio_len
-        stride_ms = 1
 
     # File name all until file extension, preserve other dots in file name
     fname = input_file_path.split("/")[-1].split(".")[:-1]
@@ -178,27 +181,33 @@ def create_splits_and_classify_from_wav(
 
     # if 0 is specified we give one label per sample and send the whole sample to classify for a model
     # THis means the loop will execute only once and one interval will be added to the list
-    if win_size_ms == 0:
-        win_size_ms = audio_len
+    if win_size_index == 0:
+        win_size_index = values_count
 
     windows = []
-    for i in range(0, len(audio) - win_size_ms + 1, stride_ms):
+    for i in range(0, values_count - win_size_index + 1, stride_index):
         start = i
-        end = i + win_size_ms
-        if end > audio_len:
-            end = audio_len
+        end = i + win_size_index
+        if end > values_count:
+            end = values_count
         windows.append([ start, end ])
 
-    windows.append([ audio_len - win_size_ms, audio_len ])
+    windows.append([ values_count - win_size_index, values_count ])
+
+    # print('audio_len', audio_len)
+    # print('values_count', values_count)
+    # print('windows', windows)
 
     # Get sliding window of size "win_size_ms" with stride "stride_ms" from audio wav
-    for [ start, end ] in windows:
-        print('    [' + str(start) + ' - ' + str(end) + 'ms.] ', end='')
+    for [ start_index, end_index ] in windows:
+        start_ms = math.floor(float(start_index) / ((audio_freq / 1000)))
+        end_ms = math.ceil(float(end_index) / ((audio_freq / 1000)))
+        print('    [' + str(start_ms) + ' - ' + str(end_ms) + 'ms.] ', end='')
 
         # Get the split audio
-        split_audio = audio[start:end]
+        split_audio = audio[start_ms:end_ms]
         # create a filename for split to identify by section
-        fname_split = f"{fname}_{start}_{end}.wav"
+        fname_split = f"{fname}_{start_ms}_{end_ms}.wav"
         output_file = os.path.join(output_subdirectory, fname_split)
 
         split_audio.export(output_file, format="wav")
@@ -218,7 +227,7 @@ def create_splits_and_classify_from_wav(
             exit(1)
 
         top_n_labels_count = min(3, len(classification))
-        top_n_labels_str = ', '.join([ f'{x["label"].lower()} ({x["score"]})' for x in classification[0:top_n_labels_count] ])
+        top_n_labels_str = ', '.join([ f'{x["label"].lower()} ({float("{:.3f}".format(x["score"]))})' for x in classification[0:top_n_labels_count] ])
         print(f'top results: {top_n_labels_str}', end='')
 
         # loop through classification list (sorted by score already)
@@ -233,7 +242,7 @@ def create_splits_and_classify_from_wav(
         print(f': result={label}')
 
         # Add label and interval tuple to split list
-        multilabel_entry = (label, start, end)
+        multilabel_entry = (label, start_index, end_index)
         intervals_list.append(multilabel_entry)
 
     return intervals_list
@@ -340,15 +349,15 @@ for data_id in data_ids:
         win_stride_ms,
         HF_API_KEY,
         audioset_labels_list,
+        sample.frequency,
+        values_count
     )
 
-    max_ix = sample.values_count - 1
+    max_ix = values_count - 1
     structured_labels = []
     last_index = 0
     for interval in intervals_list:
-        label, start_ts, end_ts = interval
-        start_ix = last_index
-        end_ix = int((end_ts * (sample.frequency / 1000)) - 1)
+        label, start_ix, end_ix = interval
         if (end_ix > max_ix): end_ix = max_ix
         structured_labels.append({
             'startIndex': start_ix,
