@@ -17,7 +17,7 @@
             "name": "Labels of interest",
             "value": "speech, music",
             "type": "string",
-            "help": " List of labels from \"AudioSet\" dataset (separated by \",\") that should be labeled.",
+            "help": "List of labels from \"AudioSet\" dataset (separated by \",\") that should be labeled.",
             "param": "audioset-labels",
             "multiline": true
         },
@@ -25,7 +25,7 @@
             "name": "Other label",
             "value": "other",
             "type": "string",
-            "help": " The label to use for data that was not in 'Labels of interest'.",
+            "help": "The label to use for data that was not in 'Labels of interest'.",
             "param": "other-label"
         },
         {
@@ -44,7 +44,7 @@
         },
         {
             "name": "Minimum confidence threshold",
-            "value": "0.5",
+            "value": "0.2",
             "type": "float",
             "help": "Any classifications with a confidence below this threshold are marked 'other'",
             "param": "min-confidence"

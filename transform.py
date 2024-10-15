@@ -85,7 +85,7 @@ parser.add_argument(
 )
 parser.add_argument("--other-label", type=str, default='other',
     help='Other label')
-parser.add_argument("--min-confidence", type=float, default=0.5,
+parser.add_argument("--min-confidence", type=float, default=0.2,
     help='Classifications below the threshold are discarded')
 parser.add_argument("--data-ids-file", type=str, required=True,
     help='File with IDs (as JSON)')
@@ -217,15 +217,19 @@ def create_splits_and_classify_from_wav(
             print('classify_audio_sample did not return a classification with "score" in it:', classification)
             exit(1)
 
-        if classification[0]['score'] >= min_confidence:
-            label = classification[0]["label"].lower()
+        top_n_labels_count = min(3, len(classification))
+        top_n_labels_str = ', '.join([ f'{x["label"].lower()} ({x["score"]})' for x in classification[0:top_n_labels_count] ])
+        print(f'top results: {top_n_labels_str}', end='')
 
-            if label not in audioset_labels_list:
-                label = other_label
-        else:
-            label = other_label
+        # loop through classification list (sorted by score already)
+        # and find the first one in the audioset_labels_list and see if we're >= min confidence
+        for c in classification:
+            if (c['label'].lower() in audioset_labels_list):
+                if (c['score'] >= min_confidence):
+                    label = c['label'].lower()
+                    break
 
-        print(label)
+        print(f': result={label}')
 
         # Add label and interval tuple to split list
         multilabel_entry = (label, start, end)
@@ -337,12 +341,14 @@ for data_id in data_ids:
         audioset_labels_list,
     )
 
+    max_ix = sample.values_count - 1
     structured_labels = []
     last_index = 0
     for interval in intervals_list:
         label, start_ts, end_ts = interval
         start_ix = last_index
         end_ix = int((end_ts * (sample.frequency / 1000)) - 1)
+        if (end_ix > max_ix): end_ix = max_ix
         structured_labels.append({
             'startIndex': start_ix,
             'endIndex': end_ix,
