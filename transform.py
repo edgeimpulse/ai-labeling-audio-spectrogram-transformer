@@ -223,6 +223,7 @@ def create_splits_and_classify_from_wav(
 
         # loop through classification list (sorted by score already)
         # and find the first one in the audioset_labels_list and see if we're >= min confidence
+        label = other_label
         for c in classification:
             if (c['label'].lower() in audioset_labels_list):
                 if (c['score'] >= min_confidence):
