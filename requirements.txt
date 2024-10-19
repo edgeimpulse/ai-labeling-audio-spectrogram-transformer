@@ -7,3 +7,4 @@ pydub==0.25.1
 pydantic==1.10.2
 aenum
 python-dateutil
+edgeimpulse-api==1.60.7
