@@ -6,3 +6,5 @@ scratchpad.py
 **yt**
 sounds
 *.sh
+load-keys.sh
+.venv/

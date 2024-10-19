@@ -6,3 +6,9 @@ scratchpad.py
 *dataset
 **yt**
 sounds
+sounds
+*.sh
+load-keys.sh
+data-ids.json
+.venv/
+create-data/
