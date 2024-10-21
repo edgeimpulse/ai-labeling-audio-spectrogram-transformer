@@ -14,23 +14,6 @@ from edgeimpulse_api.models.edit_sample_label_request import (
     EditSampleLabelRequest,
 )
 
-### This is a standalone block
-
-# Multi-label is only available for pro and enterprise;
-# Ingest multi-label: https://docs.edgeimpulse.com/docs/tutorials/api-examples/ingest-multi-label-data-api
-# Just add the label to the existing sample:
-####
-# 1. Get the audio file from the project (from the API)
-# 2. create_splits_and_classify
-#   2.1 If Multi-label is enabled, split, create structured labels and push back the labels to the sample
-#   2.2 If Multi-label is disabled, split and upload labeled files to the project
-
-# Multi-label is only available for pro and enterprise;
-# Ingest multi-label: https://docs.edgeimpulse.com/docs/tutorials/api-examples/ingest-multi-label-data-api
-# Just add the label to the existing sample: https://github.com/edgeimpulse/example-multi-label-ingestion-via-api/blob/master/update-sample.sh
-
-# If community upload back splits with labels
-
 # For splitting audio
 from pydub import AudioSegment
 
