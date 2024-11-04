@@ -10,3 +10,4 @@ load-keys.sh
 .venv/
 create-data/
 images/
+ids.json
