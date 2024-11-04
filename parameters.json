@@ -2,8 +2,11 @@
     "version": 1,
     "type": "ai-action",
     "info": {
-        "name": "Audio labeling with Audio Spectrogram Transformers",
-        "description": "Label any audio data (multiple labels per data item) using a model trained on AudioSet. Make sure you only use AudioSet labels (https://research.google.com/audioset/dataset/index.html)."
+        "name": "Audio labeling with AudioSet",
+        "description": "Label any audio samples (multiple labels per sample) using a model trained on AudioSet. Make sure you only use AudioSet labels (https://research.google.com/audioset/dataset/index.html).",
+        "operatesOn": [
+            "audio"
+        ]
     },
     "parameters": [
         {
@@ -19,7 +22,9 @@
             "type": "string",
             "help": "List of labels from \"AudioSet\" dataset (separated by \",\") that should be labeled.",
             "param": "audioset-labels",
-            "multiline": true
+            "multiline": true,
+            "placeholder": "List of labels from \"AudioSet\" dataset (separated by \",\") that should be labeled.",
+            "hint": "Separate labels by a ','. Valid label list: https://research.google.com/audioset/dataset/index.html"
         },
         {
             "name": "Other label",
@@ -32,7 +37,7 @@
             "name": "Window size (ms)",
             "value": "2000",
             "type": "int",
-            "help": "Size of the window for each classification. If set to 0, samples will be labeled with one label per sample, as opposed to structured labels.",
+            "help": "Size of the window for each classification.",
             "param": "win-size-ms"
         },
         {

@@ -304,7 +304,7 @@ for data_id in data_ids:
     ix = ix + 1
     now = current_ms()
 
-    sample = (raw_data_api.get_sample(project_id=project_id, sample_id=data_id)).sample
+    sample = (raw_data_api.get_sample(project_id=project_id, sample_id=data_id, proposed_actions_job_id=args.propose_actions)).sample
 
     prefix = '[' + str(ix).rjust(len(str(len(data_ids))), ' ') + '/' + str(len(data_ids)) + ']'
 
