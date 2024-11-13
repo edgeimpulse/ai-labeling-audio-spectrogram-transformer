@@ -78,7 +78,36 @@ parser.add_argument("--propose-actions", type=int, required=False,
 
 args, unknown = parser.parse_known_args()
 
-audioset_labels_list = [ x.strip().lower() for x in args.audioset_labels.split(",") ]
+dir_path = os.path.dirname(os.path.realpath(__file__))
+with open(os.path.join(dir_path, 'labels.txt'), 'r') as f:
+    valid_labels = [ x.strip().lower() for x in f.read().split("\n") ]
+
+# the replacement looks weird; but if calling this from CLI like "--prompt 'test\nanother line'" we'll get this still escaped
+# (you could use $'test\nanotherline' but we won't do that in the Edge Impulse backend)
+audioset_labels = args.audioset_labels.replace('\\n', '\n')
+
+audioset_labels_list = {}
+for audioset_label in [ x.strip().lower() for x in audioset_labels.strip().split("\n") ]:
+    # 100% match with a valid label? OK
+    if audioset_label in valid_labels:
+        audioset_labels_list[audioset_label] = audioset_label
+        continue
+
+    if '(' in audioset_label and ')' in audioset_label:
+        remapped_label = audioset_label[audioset_label.rindex('(') + 1:audioset_label.rindex(')')]
+        filtered_label = audioset_label[0:audioset_label.rindex('(')].strip()
+        if filtered_label in valid_labels:
+            audioset_labels_list[filtered_label] = remapped_label
+            continue
+
+    # not found
+    print('Valid labels: ' + ', '.join(valid_labels))
+    print('')
+    print('Invalid label: "' + audioset_label + '" (see above for list of valid labels)')
+    exit(1)
+
+audioset_labels_list_str = ', '.join([ (k if audioset_labels_list[k] == k else k + ' (' + audioset_labels_list[k] + ')') for k in audioset_labels_list.keys() ])
+
 win_size_ms = args.win_size_ms
 win_stride_ms = args.win_stride_ms
 if args.data_ids_file:
@@ -87,10 +116,14 @@ if args.data_ids_file:
 other_label = args.other_label
 min_confidence = args.min_confidence
 
+if win_stride_ms > win_size_ms:
+    print('ERR: Window size needs to be the same size or bigger than window stride')
+    exit(1)
+
 print('Labeling data using Audio Spectrogram Transformers')
 print('')
 print('Detecting audio:')
-print('    Audioset labels:', audioset_labels_list)
+print('    Audioset labels:', audioset_labels_list_str)
 print('    Other label:', other_label)
 print('    Min. confidence:', min_confidence)
 print(f"    Window size: {win_size_ms}ms.")
@@ -128,7 +161,6 @@ def create_splits_and_classify_from_wav(
     win_size_ms: int,
     stride_ms: int,
     hf_api_key: str,
-    audioset_labels_list: list,
     audio_freq: float,
     values_count: int,
 ):
@@ -217,9 +249,9 @@ def create_splits_and_classify_from_wav(
         # and find the first one in the audioset_labels_list and see if we're >= min confidence
         label = other_label
         for c in classification:
-            if (c['label'].lower() in audioset_labels_list):
+            if (c['label'].lower() in audioset_labels_list.keys()):
                 if (c['score'] >= min_confidence):
-                    label = c['label'].lower()
+                    label = audioset_labels_list[c['label'].lower()]
                     break
 
         print(f': result={label}')
@@ -331,7 +363,6 @@ for data_id in data_ids:
         win_size_ms,
         win_stride_ms,
         HF_API_KEY,
-        audioset_labels_list,
         sample.frequency,
         values_count
     )
@@ -351,7 +382,7 @@ for data_id in data_ids:
 
     new_metadata = sample.metadata if sample.metadata else { }
     new_metadata['labeled_by'] = 'audio-spectrogram-transformer'
-    new_metadata['labels'] = ', '.join(audioset_labels_list)
+    new_metadata['ast_labels'] = audioset_labels_list_str
 
     if args.propose_actions:
         raw_data_api.set_sample_proposed_changes(project_id=project_id, sample_id=sample.id, set_sample_proposed_changes_request={

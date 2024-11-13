@@ -3,7 +3,7 @@
     "type": "ai-action",
     "info": {
         "name": "Audio labeling with AudioSet",
-        "description": "Label any audio samples (multiple labels per sample) using a model trained on AudioSet. Make sure you only use AudioSet labels (https://research.google.com/audioset/dataset/index.html).",
+        "description": "Label any audio samples (multiple labels per sample) using a model trained on AudioSet. Make sure you only use AudioSet labels (https://research.google.com/audioset/dataset/index.html). You can relabel by adding the new label in parenthesis (e.g. \"Female speech, woman speaking (speaking)\").",
         "operatesOn": [
             "audio"
         ]
@@ -18,13 +18,13 @@
         },
         {
             "name": "Labels of interest",
-            "value": "speech, music",
+            "value": "speech\nmusic",
             "type": "string",
-            "help": "List of labels from \"AudioSet\" dataset (separated by \",\") that should be labeled.",
+            "help": "List of labels from \"AudioSet\" dataset (separated by a newline) that should be labeled. You can relabel by adding the new label in parenthesis (e.g. \"Female speech, woman speaking (speaking)\").",
             "param": "audioset-labels",
             "multiline": true,
-            "placeholder": "List of labels from \"AudioSet\" dataset (separated by \",\") that should be labeled.",
-            "hint": "Separate labels by a ','. Valid label list: https://research.google.com/audioset/dataset/index.html"
+            "placeholder": "List of labels from \"AudioSet\" dataset (separated by a newline) that should be labeled.",
+            "hint": "Separate labels by a newline, valid label list: https://research.google.com/audioset/dataset/index.html"
         },
         {
             "name": "Other label",
