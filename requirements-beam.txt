@@ -1,0 +1,4 @@
+transformers==4.45.2
+beam-client==0.2.189
+pydub==0.25.1
+numpy==1.24.0

@@ -1,0 +1,43 @@
+# Ignore local scripts and data
+create-data/
+sounds/
+*.wav
+*.mp3
+
+# Ignore images and documentation
+images/
+*.png
+
+# Ignore virtual environment and local config
+venv/
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore IDE-specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Ignore logs and temporary files
+*.log
+*.tmp
+.DS_Store
+
+# Ignore Git files
+.git/
+.gitignore
+
+# Ignore Docker and local build files
+Dockerfile
+
+# Ignore license and README (optional, if not needed in deployment)
+LICENSE
+README.md
+
+# Ignore local parameters and requirements (if handled by Beam)
+parameters.json
+requirements.txt

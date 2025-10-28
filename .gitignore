@@ -1,6 +1,7 @@
 *.DS_Store
 .ei-block-config
 out*
+input*
 scratchpad.py
 *test*
 *dataset

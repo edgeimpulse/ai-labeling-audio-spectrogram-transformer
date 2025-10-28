@@ -4,18 +4,15 @@
     "info": {
         "name": "Audio labeling with AudioSet",
         "description": "Label any audio samples (multiple labels per sample) using a model trained on AudioSet. Make sure you only use AudioSet labels (https://research.google.com/audioset/dataset/index.html). You can relabel by adding the new label in parenthesis (e.g. \"Female speech, woman speaking (speaking)\").",
+        "requiredEnvVariables": [
+            "BEAM_ENDPOINT",
+            "BEAM_ACCESS_KEY"
+        ],
         "operatesOn": [
             "audio"
         ]
     },
     "parameters": [
-        {
-            "name": "Hugging Face API Key",
-            "value": "",
-            "type": "secret",
-            "help": "An API Key that gives access to Hugging Face",
-            "param": "HF_API_KEY"
-        },
         {
             "name": "Labels of interest",
             "value": "speech\nmusic",
